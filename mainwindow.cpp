@@ -71,6 +71,7 @@ void MainWindow::showView()
         model->setHeaderData(3, Qt::Horizontal, "Атрибуты");
 
 
+
         ui->tableView->setColumnWidth(0, (ui->tableView->width() - ui->tableView->verticalHeader()->size().width() - qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent)) / 3);
         ui->tableView->setColumnWidth(1, (ui->tableView->width() - ui->tableView->verticalHeader()->size().width() - qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent)) / 3);
         ui->tableView->setColumnWidth(2, (ui->tableView->width() - ui->tableView->verticalHeader()->size().width() - qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent)) / 6);
@@ -136,6 +137,30 @@ void MainWindow::showView()
 }
 
 
+qint64 getSize(QDir Dir, QString DirName)
+{
+    qint64 res = 0;
+
+    QDir NextDir = QDir(Dir.absoluteFilePath(DirName));
+    NextDir.setFilter(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
+    QStringList Nextlist = NextDir.entryList();
+
+    foreach (QString _name, Nextlist)
+    {
+        QFileInfo file = NextDir.absoluteFilePath(_name);
+        if(file.isDir())
+        {
+            res += getSize(NextDir, _name);
+        }
+        else
+        {
+            res += file.size();
+        }
+    }
+    return res;
+}
+
+
 void MainWindow::MakeVec(QString DirName)
 {
     fileVec.resize(0);
@@ -144,17 +169,22 @@ void MainWindow::MakeVec(QString DirName)
     {
         return;
     }
-    //QDir Dir = QDir(DirName, "*.*", );
+    QDir Dir = QDir(DirName);
+    Dir.setFilter(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
     QStringList listFiles = QDir(Dir).entryList();
     QVector<files> tempVec = GetVec();
     foreach (QString _name, listFiles)
     {
-        QFileInfo file = QDir(DirName).absoluteFilePath(_name);
-        if((_name == ".") || (_name == ".."))
+        QFileInfo file = Dir.absoluteFilePath(_name);
+        qint64 _size;
+        if(file.isDir())
         {
-            continue;
+           _size = getSize(Dir, _name);
         }
-        qint64 _size= file.size();
+        else
+        {
+           _size = file.size();
+        }
         QDateTime _date = file.lastModified();
         short _attributes = 0;
         if((file.isReadable()) && (!file.isWritable()))
